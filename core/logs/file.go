@@ -47,6 +47,7 @@ type fileLogWriter struct {
 	// Rotate at size
 	MaxSize        int `json:"maxsize"`
 	maxSizeCurSize int
+	UseOpenTime    bool `json:"useopentime"`
 
 	// Rotate daily
 	Daily         bool  `json:"daily"`
@@ -263,7 +264,11 @@ func (w *fileLogWriter) dailyRotate(openTime time.Time) {
 	<-tm.C
 	w.Lock()
 	if w.needRotateDaily(time.Now().Day()) {
-		if err := w.doRotate(time.Now()); err != nil {
+		var rotateWhen time.Time = time.Now()
+		if w.UseOpenTime {
+			rotateWhen = w.dailyOpenTime
+		}
+		if err := w.doRotate(rotateWhen); err != nil {
 			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
 		}
 	}
@@ -278,7 +283,11 @@ func (w *fileLogWriter) hourlyRotate(openTime time.Time) {
 	<-tm.C
 	w.Lock()
 	if w.needRotateHourly(time.Now().Hour()) {
-		if err := w.doRotate(time.Now()); err != nil {
+		var rotateWhen time.Time = time.Now()
+		if w.UseOpenTime {
+			rotateWhen = w.hourlyOpenTime
+		}
+		if err := w.doRotate(rotateWhen); err != nil {
 			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
 		}
 	}
